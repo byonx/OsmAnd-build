@@ -14,7 +14,7 @@ cleanupEnvironment()
 		echo "CC was set to '${CC}', unsetting..."
 		unset CC
 	fi
-	
+
 	# CXX
 	if [ -n "$CXX" ]; then
 		echo "CXX was set to '${CXX}', unsetting..."
@@ -27,9 +27,9 @@ export -f cleanupEnvironment
 cleanUpstream()
 {
 	local externalDir=$1
-	local externalPath="$( cd "$externalDir" && pwd )"
+	local externalPath="$(cd "$externalDir" && pwd)"
 	local externalName="$(basename "$externalPath")"
-	
+
 	if ls -1 "$externalPath"/upstream.* >/dev/null 2>&1
 	then
 		echo "Cleaning '$externalName'..."
@@ -47,13 +47,13 @@ export -f cleanUpstream
 prepareUpstreamFromGit()
 {
 	local externalDir=$1
-	local externalPath="$( cd "$externalDir" && pwd )"
+	local externalPath="$(cd "$externalDir" && pwd)"
 	local externalName="$(basename "$externalPath")"
 	local gitUrl=$2
 	local gitBranch=$3
-	
+
 	echo "Processing '$externalName' in '$externalPath'..."
-	
+
 	# Check if needs reconfiguring
 	if [ -f "$externalPath/stamp" ]; then
 		echo "Checking '$externalName'..."
@@ -70,7 +70,7 @@ prepareUpstreamFromGit()
 			cp "$externalPath/stamp" "$externalPath/.stamp"
 		fi
 	fi
-	
+
 	# Check if already configured
 	if [ -d "$externalPath/upstream.patched" ]; then
 		echo "Skipping '$externalName': already configured"
@@ -95,12 +95,12 @@ export -f prepareUpstreamFromGit
 prepareUpstreamFromSvn()
 {
 	local externalDir=$1
-	local externalPath="$( cd "$externalDir" && pwd )"
+	local externalPath="$(cd "$externalDir" && pwd)"
 	local externalName="$(basename "$externalPath")"
 	local svnUrl=$2
-	
+
 	echo "Processing '$externalName' in '$externalPath'..."
-	
+
 	# Check if needs reconfiguring
 	if [ -f "$externalPath/stamp" ]; then
 		echo "Checking '$externalName'..."
@@ -117,7 +117,7 @@ prepareUpstreamFromSvn()
 			cp "$externalPath/stamp" "$externalPath/.stamp"
 		fi
 	fi
-	
+
 	# Check if already configured
 	if [ -d "$externalPath/upstream.patched" ]; then
 		echo "Skipping '$externalName': already configured"
@@ -142,12 +142,12 @@ export -f prepareUpstreamFromSvn
 prepareUpstreamFromTarArchive()
 {
 	local externalDir=$1
-	local externalPath="$( cd "$externalDir" && pwd )"
+	local externalPath="$(cd "$externalDir" && pwd)"
 	local externalName="$(basename "$externalPath")"
 	local tarUrl=$2
-	
+
 	echo "Processing '$externalName' in '$externalPath'..."
-	
+
 	# Check if needs reconfiguring
 	if [ -f "$externalPath/stamp" ]; then
 		echo "Checking '$externalName'..."
@@ -202,10 +202,10 @@ export -f prepareUpstreamFromTarArchive
 prepareUpstreamFromZipArchive()
 {
 	local externalDir=$1
-	local externalPath="$( cd "$externalDir" && pwd )"
+	local externalPath="$(cd "$externalDir" && pwd)"
 	local externalName="$(basename "$externalPath")"
 	local tarUrl=$2
-	
+
 	echo "Processing '$externalName' in '$externalPath'..."
 
 	# Check if needs reconfiguring
@@ -224,7 +224,7 @@ prepareUpstreamFromZipArchive()
 			cp "$externalPath/stamp" "$externalPath/.stamp"
 		fi
 	fi
-	
+
 	# Check if already configured
 	if [ -d "$externalPath/upstream.patched" ]; then
 		echo "Skipping '$externalName': already configured"
@@ -264,10 +264,10 @@ export -f prepareUpstreamFromZipArchive
 prepareUpstreamFrom7zArchive()
 {
 	local externalDir=$1
-	local externalPath="$( cd "$externalDir" && pwd )"
+	local externalPath="$(cd "$externalDir" && pwd)"
 	local externalName="$(basename "$externalPath")"
 	local tarUrl=$2
-	
+
 	echo "Processing '$externalName' in '$externalPath'..."
 
 	# Check if needs reconfiguring
@@ -286,7 +286,7 @@ prepareUpstreamFrom7zArchive()
 			cp "$externalPath/stamp" "$externalPath/.stamp"
 		fi
 	fi
-	
+
 	# Check if already configured
 	if [ -d "$externalPath/upstream.patched" ]; then
 		echo "Skipping '$externalName': already configured"
@@ -326,22 +326,27 @@ export -f prepareUpstreamFrom7zArchive
 patchUpstream()
 {
 	local externalDir=$1
-	local externalPath="$( cd "$externalDir" && pwd )"
+	local externalPath="$(cd "$externalDir" && pwd)"
 	local externalName="$(basename "$externalPath")"
 
 	echo "Preparing copy for patching..."
 	cp -rfp "$externalPath/upstream.original" "$externalPath/upstream.patched"
-	
+
 	echo "Looking for '$externalName' patches..."
 	if [ -d "$externalPath/patches" ]; then
-		local patchFiles="$( cd "$externalPath/patches" && ls -1 *.patch | sort)"
+		local patchFiles="$(cd "$externalPath/patches" && ls -1 *.{patch,sh} | sort)"
 		echo "Found: $patchFiles"
 		echo "Patching '$externalName' located at '$externalPath'..."
 		for patchFile in $patchFiles
 		do
 			echo "Applying $patchFile"
-			patch --strip=1 --directory="$externalPath/upstream.patched/" --input="$externalPath/patches/$patchFile"
-			retcode=$?
+			if [[ $patchFile == *.patch ]]; then
+				patch --strip=1 --directory="$externalPath/upstream.patched/" --input="$externalPath/patches/$patchFile"
+				retcode=$?
+			elif [[ $patchFile == *.sh ]]; then
+				(cd "$externalPath/upstream.patched" && $BASH "$externalPath/patches/$patchFile")
+				retcode=$?
+			fi
 			if [ $retcode -ne 0 ]; then
 				echo "Failed to apply '$patchFile' to upstream, aborting..."
 				rm -rf "$externalPath/upstream.patched"

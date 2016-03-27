@@ -41,7 +41,12 @@ else()
 	endif()
 
 	# CMAKE_TARGET_CPU_ARCH
-	set(CMAKE_TARGET_CPU_ARCH i686)
+	if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+		set(CMAKE_TARGET_CPU_ARCH x86_64)
+	else()
+		message(WARNING "Unrecognized system architecture '${CMAKE_HOST_SYSTEM_PROCESSOR}', defaulting to i686")
+		set(CMAKE_TARGET_CPU_ARCH i686)
+	endif()
 	
 	# CMAKE_TARGET_CPU_ARCH_FAMILY
 	set(CMAKE_TARGET_CPU_ARCH_FAMILY x86)
@@ -256,7 +261,7 @@ endif()
 if (CMAKE_TARGET_OS STREQUAL "linux" OR
     CMAKE_TARGET_OS STREQUAL "macosx" OR
     CMAKE_TARGET_OS STREQUAL "windows")
-	if (EXISTS "${OSMAND_ROOT}/tools")
-		include("${OSMAND_ROOT}/tools/tools.cmake")
+	if (EXISTS "${OSMAND_ROOT}/tools/cpp-tools")
+		include("${OSMAND_ROOT}/tools/cpp-tools/tools.cmake")
 	endif()
 endif()
